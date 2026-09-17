@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="m3grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b57d0" />
+      <stop offset="100%" stop-color="#00639b" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#m3grad)" />
+  <g filter="url(#shadow)">
+    <!-- Central Banknote / Money Card -->
+    <rect x="96" y="140" width="320" height="200" rx="36" fill="#ffffff" />
+    <!-- AZN Manat symbol / Sparkle -->
+    <circle cx="256" cy="240" r="54" fill="#d3e3fd" />
+    <path d="M 256 200 L 256 280 M 230 220 C 230 200, 282 200, 282 220 C 282 240, 230 240, 230 260 C 230 280, 282 280, 282 260" stroke="#0b57d0" stroke-width="14" stroke-linecap="round" fill="none" />
+    <!-- Arrow loop indicators -->
+    <circle cx="140" cy="240" r="16" fill="#146c2e" />
+    <circle cx="372" cy="240" r="16" fill="#ba1a1a" />
+  </g>
+  <!-- Transfer Badge -->
+  <rect x="146" y="370" width="220" height="64" rx="32" fill="#c4eed0" />
+  <text x="256" y="412" font-family="-apple-system, system-ui, sans-serif" font-size="26" font-weight="bold" fill="#072711" text-anchor="middle">₼ SPLIT</text>
+</svg>

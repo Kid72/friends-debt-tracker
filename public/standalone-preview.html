@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dostlar Borc & Xərc İzləyicisi — Interactive PWA Preview</title>
+  
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b57d0">
+
+  <!-- Google Sans Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Product+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/google-sans">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Google Sans', 'Google Sans Text', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            m3: {
+              primary: '#0b57d0',
+              'on-primary': '#ffffff',
+              'primary-container': '#d3e3fd',
+              'on-primary-container': '#041e49',
+              secondary: '#444746',
+              'secondary-container': '#e1e3e1',
+              surface: '#f8fafd',
+              'surface-container-lowest': '#ffffff',
+              'surface-container-low': '#f0f4f9',
+              'surface-container': '#e9eef6',
+              'surface-container-high': '#e3e8ef',
+              'on-surface': '#1f1f1f',
+              'on-surface-variant': '#444746',
+              outline: '#747775',
+              'outline-variant': '#c4c7c5',
+              success: '#146c2e',
+              'success-container': '#c4eed0',
+              error: '#ba1a1a',
+            }
+          },
+          borderRadius: {
+            '3xl': '28px',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18 & Babel & Canvas Confetti CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Google Sans', 'Google Sans Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f8fafd;
+      color: #1f1f1f;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-m3-surface min-h-screen antialiased">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // --- DICTIONARIES ---
+    const translations = {
+      az: {
+        appShortName: "Dost Borcları",
+        tagline: "WhatsApp dost qrupu üçün xərc bölüşdürmə",
+        activeUser: "Mən",
+        guestMode: "Qonaq",
+        tabTransfers: "Köçürmələr",
+        tabExpenses: "Xərclər",
+        tabGamification: "Şərəf lövhəsi",
+        tabMembers: "İştirakçılar",
+        youAreOwed: "Sizə borcludurlar",
+        youOwe: "Sizin borcunuz var",
+        allSettled: "Balans təmizdir 🎉",
+        allSettledSubtitle: "Heç kim heç kimə borclu deyil. Əla istirahət idi!",
+        groupTotalExpenses: "Qrupun ümumi xərci",
+        pendingTransfersCount: "{count} köçürmə qalıb",
+        netBalance: "Xalis balans",
+        optimizedTransfersTitle: "Optimallaşdırılmış köçürmələr",
+        optimizedTransfersSubtitle: "Alqoritm tranzaksiyaların sayını minimuma endirdi",
+        noTransfersNeeded: "Hazırda heç bir köçürməyə ehtiyac yoxdur!",
+        owes: "borcludur",
+        to: "şəxsinə",
+        settleUpBtn: "Borcu bağla",
+        shareWhatsAppBtn: "WhatsApp-da paylaş",
+        addExpenseTitle: "Yeni xərc",
+        hallOfFameTitle: "Şərəf Lövhəsi",
+        hallOfFameSubtitle: "Qrup üzvlərinin aktivlik statistikası və fəxri titullları",
+        sponsorTitle: "Gecənin sponsoru",
+        sponsorDesc: "Ən böyük məbləğdə hesab ödəyən",
+        lightningTitle: "İldırım ödəyici",
+        lightningDesc: "Borclarını ən cəld bağlayan",
+        tomorrowTitle: "\"Sabah ataram\" bəy",
+        tomorrowDesc: "Borcu ən uzun müddət asılı qalan",
+        partyLifeTitle: "Məclisin canı",
+        partyLifeDesc: "Ən çox yığıncaqda iştirak edən",
+        totalPaidStat: "Ödənilən:",
+        eventsAttendedStat: "İştirak:",
+        unsettledDebtStat: "Borc:",
+        settledCountStat: "Bağlanan:",
+        membersTitle: "İştirakçılar",
+        addMemberSubmit: "Əlavə et",
+        cancelBtn: "Ləğv et",
+        closeBtn: "Bağla",
+        sendWhatsAppProof: "WhatsApp-da göndər",
+        settleModalTitle: "Borcun bağlanması",
+        settleRecordedSuccess: "Borc uğurla bağlandı!",
+        helpTitle: "Kömək & Məlumat",
+      },
+      ru: {
+        appShortName: "Долги друзей",
+        tagline: "Разделение расходов для компании друзей",
+        activeUser: "Я",
+        guestMode: "Гость",
+        tabTransfers: "Переводы",
+        tabExpenses: "Расходы",
+        tabGamification: "Зал славы",
+        tabMembers: "Участники",
+        youAreOwed: "Вам должны",
+        youOwe: "Вы должны",
+        allSettled: "Баланс чист 🎉",
+        allSettledSubtitle: "Никто никому ничего не должен. Отличный отдых!",
+        groupTotalExpenses: "Общие расходы группы",
+        pendingTransfersCount: "Осталось {count} переводов",
+        netBalance: "Личный баланс",
+        optimizedTransfersTitle: "Оптимизированные переводы",
+        optimizedTransfersSubtitle: "Алгоритм сократил количество необходимых транзакций",
+        noTransfersNeeded: "Сейчас никаких переводов не требуется!",
+        owes: "должен",
+        to: "получателю",
+        settleUpBtn: "Отметить перевод",
+        shareWhatsAppBtn: "Поделиться в WhatsApp",
+        addExpenseTitle: "Новый чек",
+        hallOfFameTitle: "Зал славы",
+        hallOfFameSubtitle: "Статистика активности и звания участников",
+        sponsorTitle: "Спонсор вечера",
+        sponsorDesc: "Оплатил наибольшую сумму счетов",
+        lightningTitle: "Молниеносный плательщик",
+        lightningDesc: "Быстрее всех закрывает долги",
+        tomorrowTitle: "Мистер \"Завтра скину\"",
+        tomorrowDesc: "Участник с самым старым долгом",
+        partyLifeTitle: "Душа компании",
+        partyLifeDesc: "Посетил больше всего встреч",
+        totalPaidStat: "Оплатил:",
+        eventsAttendedStat: "Встреч:",
+        unsettledDebtStat: "Долг:",
+        settledCountStat: "Закрыто:",
+        membersTitle: "Участники",
+        addMemberSubmit: "Добавить",
+        cancelBtn: "Отмена",
+        closeBtn: "Закрыть",
+        sendWhatsAppProof: "Отправить в WhatsApp",
+        settleModalTitle: "Закрытие долга",
+        settleRecordedSuccess: "Долг успешно закрыт!",
+        helpTitle: "Справка & Информация",
+      },
+      en: {
+        appShortName: "Friends Debts",
+        tagline: "Expense splitting and debt optimization",
+        activeUser: "Me",
+        guestMode: "Guest",
+        tabTransfers: "Transfers",
+        tabExpenses: "Expenses",
+        tabGamification: "Hall of Fame",
+        tabMembers: "Members",
+        youAreOwed: "You are owed",
+        youOwe: "You owe",
+        allSettled: "All settled 🎉",
+        allSettledSubtitle: "Nobody owes anything. Great hangout!",
+        groupTotalExpenses: "Total group expenses",
+        pendingTransfersCount: "{count} transfers pending",
+        netBalance: "Net balance",
+        optimizedTransfersTitle: "Optimized Transfers",
+        optimizedTransfersSubtitle: "Algorithm minimized total transactions",
+        noTransfersNeeded: "No transfers needed right now!",
+        owes: "owes",
+        to: "to",
+        settleUpBtn: "Settle Up",
+        shareWhatsAppBtn: "Share on WhatsApp",
+        addExpenseTitle: "Add Expense",
+        hallOfFameTitle: "Hall of Fame",
+        hallOfFameSubtitle: "Group activity statistics and fun honorary titles",
+        sponsorTitle: "Night's Sponsor",
+        sponsorDesc: "Paid highest total amount of bills",
+        lightningTitle: "Lightning Payer",
+        lightningDesc: "Fastest to settle debts",
+        tomorrowTitle: "Mr. \"I'll send tomorrow\"",
+        tomorrowDesc: "Member with longest pending debt",
+        partyLifeTitle: "Life of the Party",
+        partyLifeDesc: "Attended most hangouts",
+        totalPaidStat: "Paid:",
+        eventsAttendedStat: "Hangouts:",
+        unsettledDebtStat: "Debt:",
+        settledCountStat: "Settled:",
+        membersTitle: "Members",
+        addMemberSubmit: "Add",
+        cancelBtn: "Cancel",
+        closeBtn: "Close",
+        sendWhatsAppProof: "Send to WhatsApp",
+        settleModalTitle: "Settle Up",
+        settleRecordedSuccess: "Debt settled successfully!",
+        helpTitle: "Help & Info",
+      }
+    };
+
+    // --- AVATAR COMPONENT ---
+    function Avatar({ name = '', color, size = 'md' }) {
+      const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??';
+      const sizeClass = size === 'sm' ? 'w-8 h-8 text-xs' : size === 'lg' ? 'w-12 h-12 text-base font-bold' : size === 'xl' ? 'w-16 h-16 text-xl font-bold' : 'w-10 h-10 text-sm font-semibold';
+      const bgColor = color || '#0b57d0';
+      return (
+        <div className={`rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm ${sizeClass}`} style={{ backgroundColor: bgColor }}>
+          {initials}
+        </div>
+      );
+    }
+
+    // --- MAIN APP ---
+    function App() {
+      const [lang, setLang] = useState('az');
+      const t = (k, p = {}) => {
+        let str = translations[lang]?.[k] || translations.az[k] || k;
+        Object.keys(p).forEach(k2 => { str = str.replace(new RegExp(`\\{${k2}\\}`, 'g'), p[k2]); });
+        return str;
+      };
+
+      const [members, setMembers] = useState([
+        { id: 'm_rauf', name: 'Rauf Aliyev', color: '#0b57d0' },
+        { id: 'm_mika', name: 'Mika', color: '#b3261e' },
+        { id: 'm_chingiz', name: 'Çingiz', color: '#146c2e' },
+        { id: 'm_yusif', name: 'Yusif', color: '#6750a4' },
+        { id: 'm_elvin', name: 'Elvin', color: '#c26400' }
+      ]);
+
+      const [currency, setCurrency] = useState('₼');
+      const [activeMemberId, setActiveMemberId] = useState('m_rauf');
+      const [activeTab, setActiveTab] = useState('transfers');
+
+      const [expenses, setExpenses] = useState([
+        {
+          id: 'exp_1',
+          title: 'Tarqovıda kofe & şirniyyat',
+          amount: 45.0,
+          paidBy: 'm_rauf',
+          date: '2026-09-14',
+          splitType: 'EQUAL',
+          splits: [
+            { memberId: 'm_rauf', amount: 15.0 },
+            { memberId: 'm_mika', amount: 15.0 },
+            { memberId: 'm_elvin', amount: 15.0 }
+          ]
+        },
+        {
+          id: 'exp_2',
+          title: 'Steyk-haus şam yeməyi',
+          amount: 180.0,
+          paidBy: 'm_chingiz',
+          date: '2026-09-15',
+          splitType: 'EQUAL',
+          splits: [
+            { memberId: 'm_rauf', amount: 45.0 },
+            { memberId: 'm_chingiz', amount: 45.0 },
+            { memberId: 'm_yusif', amount: 45.0 },
+            { memberId: 'm_elvin', amount: 45.0 }
+          ]
+        },
+        {
+          id: 'exp_3',
+          title: 'Taksi (Baku - Sea Breeze)',
+          amount: 30.0,
+          paidBy: 'm_yusif',
+          date: '2026-09-16',
+          splitType: 'EQUAL',
+          splits: [
+            { memberId: 'm_rauf', amount: 10.0 },
+            { memberId: 'm_yusif', amount: 10.0 },
+            { memberId: 'm_elvin', amount: 10.0 }
+          ]
+        }
+      ]);
+
+      const [settlements, setSettlements] = useState([]);
+      const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+      const [settleModalData, setSettleModalData] = useState(null);
+      const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+
+      // Algoritm
+      const { balances, transfers } = useMemo(() => {
+        const bal = {};
+        const rawDebts = {};
+        members.forEach(m => {
+          bal[m.id] = 0;
+          rawDebts[m.id] = {};
+        });
+
+        expenses.forEach(e => {
+          bal[e.paidBy] = (bal[e.paidBy] || 0) + e.amount;
+          (e.splits || []).forEach(s => {
+            bal[s.memberId] = (bal[s.memberId] || 0) - s.amount;
+            if (s.memberId !== e.paidBy) {
+              rawDebts[s.memberId][e.paidBy] = (rawDebts[s.memberId][e.paidBy] || 0) + s.amount;
+            }
+          });
+        });
+
+        settlements.forEach(s => {
+          bal[s.from] = (bal[s.from] || 0) + s.amount;
+          bal[s.to] = (bal[s.to] || 0) - s.amount;
+          if (rawDebts[s.from]?.[s.to]) {
+            rawDebts[s.from][s.to] = Math.max(0, rawDebts[s.from][s.to] - s.amount);
+          }
+        });
+
+        const dList = [];
+        const cList = [];
+        Object.entries(bal).forEach(([mId, b]) => {
+          if (b < -0.01) dList.push({ id: mId, amount: -b });
+          else if (b > 0.01) cList.push({ id: mId, amount: b });
+        });
+
+        dList.sort((a,b) => b.amount - a.amount);
+        cList.sort((a,b) => b.amount - a.amount);
+
+        const trs = [];
+        let i = 0, j = 0;
+        const mMap = new Map(members.map(m => [m.id, m]));
+
+        while (i < dList.length && j < cList.length) {
+          const d = dList[i];
+          const c = cList[j];
+          const amt = Math.min(d.amount, c.amount);
+          const rAmt = Math.round(amt * 100) / 100;
+
+          if (rAmt > 0) {
+            const debtorDirectCreditors = Object.entries(rawDebts[d.id] || {})
+              .filter(([_, a]) => a > 0.01)
+              .sort((a, b) => b[1] - a[1]);
+
+            let redirectedFrom = null;
+            if (debtorDirectCreditors.length > 0 && !debtorDirectCreditors.some(([cId]) => cId === c.id)) {
+              redirectedFrom = mMap.get(debtorDirectCreditors[0][0]);
+            }
+
+            const dMember = mMap.get(d.id);
+            const cMember = mMap.get(c.id);
+
+            let expl = '';
+            let isRed = false;
+            if (redirectedFrom && redirectedFrom.id !== c.id) {
+              isRed = true;
+              if (lang === 'az') {
+                expl = `Əməliyyatların sayını azaltmaq üçün ${dMember.name}-in ${redirectedFrom.name}-a olan ${rAmt.toFixed(2)} ${currency} borcu ${cMember.name}-ə yönləndirildi`;
+              } else if (lang === 'ru') {
+                expl = `Долг ${dMember.name} перед ${redirectedFrom.name} на ${rAmt.toFixed(2)} ${currency} перенаправлен ${cMember.name} для сокращения числа переводов`;
+              } else {
+                expl = `${dMember.name}'s ${rAmt.toFixed(2)} ${currency} debt to ${redirectedFrom.name} was redirected to ${cMember.name} to optimize transfers`;
+              }
+            } else {
+              expl = lang === 'az' ? 'Birbaşa borc hesabı' : lang === 'ru' ? 'Прямой расчет' : 'Direct transfer';
+            }
+
+            trs.push({
+              id: `${d.id}_${c.id}_${rAmt}`,
+              fromMember: dMember,
+              toMember: cMember,
+              amount: rAmt,
+              isRedirected: isRed,
+              explanation: expl
+            });
+          }
+
+          d.amount -= amt;
+          c.amount -= amt;
+          if (d.amount < 0.01) i++;
+          if (c.amount < 0.01) j++;
+        }
+
+        return { balances: bal, transfers: trs };
+      }, [members, expenses, settlements, currency, lang]);
+
+      const activeMember = members.find(m => m.id === activeMemberId);
+      const activeBalance = activeMemberId ? (balances[activeMemberId] || 0) : 0;
+      const totalExp = expenses.reduce((s, e) => s + e.amount, 0);
+
+      // Settle Up
+      const handleSettle = (tr) => {
+        setSettlements([...settlements, {
+          id: `setl_${Date.now()}`,
+          from: tr.fromMember.id,
+          to: tr.toMember.id,
+          amount: tr.amount,
+          date: new Date().toISOString().split('T')[0]
+        }]);
+
+        if (window.confetti) {
+          window.confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+        }
+
+        setSettleModalData(tr);
+      };
+
+      // WhatsApp Share
+      const handleShareWhatsApp = () => {
+        const currentUrl = window.location.href;
+        let text = `🍻 Yığıncaq nəticələri\n💰 Ümumi hesab: ${totalExp.toFixed(2)} ${currency}\n\n📋 Kim kimə köçürür (optimallaşdırılmış):\n`;
+        transfers.forEach(tr => {
+          text += `• ${tr.fromMember.name} ➡️ ${tr.amount.toFixed(2)} ${currency} ➡️ ${tr.toMember.name}\n`;
+        });
+        text += `\n🔗 Balansı yoxlamaq və borcları bağlamaq: ${currentUrl}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      };
+
+      return (
+        <div className="min-h-screen bg-m3-surface text-m3-on-surface flex flex-col pb-24">
+          {/* Header */}
+          <header className="sticky top-0 z-40 bg-m3-surface-container/95 backdrop-blur-md border-b border-m3-outline-variant/30 px-4 py-3">
+            <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-m3-primary flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                  ₼
+                </div>
+                <div>
+                  <h1 className="text-base sm:text-lg font-bold text-m3-on-surface leading-tight">
+                    {t('appShortName')}
+                  </h1>
+                  <p className="text-xs text-m3-on-surface-variant hidden sm:block">
+                    {t('tagline')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <select
+                  value={activeMemberId}
+                  onChange={e => setActiveMemberId(e.target.value)}
+                  className="bg-m3-primary-container text-m3-on-primary-container text-xs sm:text-sm font-semibold rounded-full px-3 py-1.5 border-none cursor-pointer"
+                >
+                  <option value="">{t('guestMode')}</option>
+                  {members.map(m => (
+                    <option key={m.id} value={m.id}>{t('activeUser')}: {m.name}</option>
+                  ))}
+                </select>
+
+                <div className="flex items-center bg-m3-surface-container-high rounded-full p-0.5 text-xs font-bold">
+                  {['az', 'ru', 'en'].map(l => (
+                    <button
+                      key={l}
+                      onClick={() => setLang(l)}
+                      className={`px-2 py-1 rounded-full uppercase ${lang === l ? 'bg-m3-primary text-white' : 'text-m3-on-surface-variant'}`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setIsHelpModalOpen(true)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-m3-on-surface-variant hover:bg-m3-surface-container font-bold"
+                >
+                  ?
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Main */}
+          <main className="max-w-4xl w-full mx-auto px-4 py-6 space-y-6 flex-1">
+            {/* Hero Card */}
+            <div className="bg-m3-surface-container-lowest rounded-3xl p-6 shadow-sm border border-m3-outline-variant/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Avatar name={activeMember ? activeMember.name : '?'} color={activeMember?.color} size="xl" />
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-m3-on-surface-variant">
+                    {activeMember ? activeMember.name : t('guestMode')}
+                  </div>
+                  {activeBalance > 0.01 && (
+                    <div>
+                      <div className="text-3xl font-bold text-m3-success">+{activeBalance.toFixed(2)} {currency}</div>
+                      <div className="text-sm text-m3-on-surface-variant font-medium">{t('youAreOwed')}</div>
+                    </div>
+                  )}
+                  {activeBalance < -0.01 && (
+                    <div>
+                      <div className="text-3xl font-bold text-m3-error">{activeBalance.toFixed(2)} {currency}</div>
+                      <div className="text-sm text-m3-on-surface-variant font-medium">{t('youOwe')}</div>
+                    </div>
+                  )}
+                  {Math.abs(activeBalance) <= 0.01 && (
+                    <div>
+                      <div className="text-3xl font-bold text-m3-primary">0.00 {currency}</div>
+                      <div className="text-sm text-m3-on-surface-variant font-medium">{t('allSettled')}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 border-t md:border-t-0 md:border-l border-m3-outline-variant/40 pt-3 md:pt-0 md:pl-6">
+                <div className="bg-m3-surface-container-low rounded-2xl p-3">
+                  <div className="text-xs text-m3-on-surface-variant font-medium">{t('groupTotalExpenses')}</div>
+                  <div className="text-lg font-bold text-m3-on-surface">{totalExp.toFixed(2)} {currency}</div>
+                </div>
+                <div className="bg-m3-surface-container-low rounded-2xl p-3">
+                  <div className="text-xs text-m3-on-surface-variant font-medium">{t('tabTransfers')}</div>
+                  <div className="text-lg font-bold text-m3-on-surface">{transfers.length} {t('owes')}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex items-center border-b border-m3-outline-variant/30 gap-1 overflow-x-auto pb-1">
+              {[
+                { id: 'transfers', name: t('tabTransfers'), badge: transfers.length },
+                { id: 'expenses', name: t('tabExpenses'), badge: expenses.length },
+                { id: 'gamification', name: t('tabGamification') },
+                { id: 'members', name: t('tabMembers'), badge: members.length },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all ${
+                    activeTab === tab.id ? 'bg-m3-primary text-white' : 'text-m3-on-surface-variant hover:bg-m3-surface-container'
+                  }`}
+                >
+                  <span>{tab.name}</span>
+                  {tab.badge !== undefined && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-white text-m3-primary' : 'bg-m3-surface-container-high'}`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* TAB: TRANSFERS */}
+            {activeTab === 'transfers' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-m3-on-surface">{t('optimizedTransfersTitle')}</h2>
+                    <p className="text-xs text-m3-on-surface-variant">{t('optimizedTransfersSubtitle')}</p>
+                  </div>
+                  <button
+                    onClick={handleShareWhatsApp}
+                    className="bg-[#25D366] text-white text-xs sm:text-sm font-bold rounded-full px-4 py-2 shadow-sm"
+                  >
+                    {t('shareWhatsAppBtn')}
+                  </button>
+                </div>
+
+                {transfers.length === 0 ? (
+                  <div className="bg-m3-surface-container-lowest rounded-3xl p-8 text-center border border-m3-outline-variant/30">
+                    <div className="text-3xl mb-2">🎉</div>
+                    <h3 className="font-bold text-base">{t('noTransfersNeeded')}</h3>
+                    <p className="text-xs text-m3-on-surface-variant">{t('allSettledSubtitle')}</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {transfers.map(tr => (
+                      <div key={tr.id} className="bg-m3-surface-container-lowest rounded-3xl p-4 sm:p-5 border border-m3-outline-variant/30 shadow-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar name={tr.fromMember.name} color={tr.fromMember.color} size="md" />
+                            <div>
+                              <div className="text-sm font-bold">{tr.fromMember.name}</div>
+                              <div className="text-xs text-m3-error font-medium">{t('owes')}</div>
+                            </div>
+                            <span className="text-m3-on-surface-variant">➡️</span>
+                            <Avatar name={tr.toMember.name} color={tr.toMember.color} size="md" />
+                            <div>
+                              <div className="text-sm font-bold">{tr.toMember.name}</div>
+                              <div className="text-xs text-m3-success font-medium">{t('to')}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl font-bold">{tr.amount.toFixed(2)} {currency}</span>
+                            <button
+                              onClick={() => handleSettle(tr)}
+                              className="bg-m3-primary text-white text-xs sm:text-sm font-semibold rounded-full px-4 py-2 shadow-sm active:scale-95"
+                            >
+                              {t('settleUpBtn')}
+                            </button>
+                          </div>
+                        </div>
+
+                        {tr.isRedirected && (
+                          <div className="mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-2.5 text-xs text-amber-900 font-medium">
+                            ⚡ {tr.explanation}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: EXPENSES */}
+            {activeTab === 'expenses' && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-bold">{t('tabExpenses')}</h2>
+                {expenses.map(e => (
+                  <div key={e.id} className="bg-m3-surface-container-lowest rounded-3xl p-4 border border-m3-outline-variant/30 flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-sm sm:text-base">{e.title}</h4>
+                      <p className="text-xs text-m3-on-surface-variant mt-0.5">
+                        {members.find(m => m.id === e.paidBy)?.name || 'Naməlum'} • {e.date} • {e.splits?.length} nəfər
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-base sm:text-lg font-bold">{e.amount.toFixed(2)} {currency}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* TAB: GAMIFICATION */}
+            {activeTab === 'gamification' && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-bold">{t('hallOfFameTitle')}</h2>
+                  <p className="text-xs text-m3-on-surface-variant">{t('hallOfFameSubtitle')}</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-amber-50 border border-amber-200 rounded-3xl p-4 flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl font-bold">⚡</div>
+                    <div>
+                      <div className="text-xs font-bold text-amber-800 uppercase">{t('sponsorTitle')}</div>
+                      <div className="text-sm font-bold text-m3-on-surface">Çingiz (180.00 {currency})</div>
+                      <div className="text-xs text-m3-on-surface-variant">{t('sponsorDesc')}</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-3xl p-4 flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-2xl font-bold">⚡</div>
+                    <div>
+                      <div className="text-xs font-bold text-blue-800 uppercase">{t('lightningTitle')}</div>
+                      <div className="text-sm font-bold text-m3-on-surface">Rauf Aliyev</div>
+                      <div className="text-xs text-m3-on-surface-variant">{t('lightningDesc')}</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-orange-50 border border-orange-200 rounded-3xl p-4 flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-orange-500 text-white flex items-center justify-center text-2xl font-bold">🐢</div>
+                    <div>
+                      <div className="text-xs font-bold text-orange-800 uppercase">{t('tomorrowTitle')}</div>
+                      <div className="text-sm font-bold text-m3-on-surface">Elvin (70.00 {currency})</div>
+                      <div className="text-xs text-m3-on-surface-variant">{t('tomorrowDesc')}</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-4 flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-2xl font-bold">🍕</div>
+                    <div>
+                      <div className="text-xs font-bold text-emerald-800 uppercase">{t('partyLifeTitle')}</div>
+                      <div className="text-sm font-bold text-m3-on-surface">Rauf & Elvin (3 görüş)</div>
+                      <div className="text-xs text-m3-on-surface-variant">{t('partyLifeDesc')}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: MEMBERS */}
+            {activeTab === 'members' && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold">{t('membersTitle')} ({members.length})</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {members.map(m => (
+                    <div key={m.id} className="bg-m3-surface-container-lowest rounded-3xl p-4 border border-m3-outline-variant/30 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={m.name} color={m.color} size="md" />
+                        <span className="font-bold text-sm">{m.name}</span>
+                      </div>
+                      {m.id === activeMemberId ? (
+                        <span className="text-xs font-bold text-m3-primary bg-m3-primary-container px-3 py-1 rounded-full">✓ {t('activeUser')}</span>
+                      ) : (
+                        <button
+                          onClick={() => setActiveMemberId(m.id)}
+                          className="text-xs font-semibold text-m3-on-surface-variant hover:text-m3-primary bg-m3-surface-container px-3 py-1 rounded-full"
+                        >
+                          {t('activeUser')}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* Floating Action Button (+) */}
+          <button
+            onClick={() => setIsExpenseModalOpen(true)}
+            className="fixed right-5 bottom-5 z-30 flex items-center gap-2 bg-m3-primary text-white p-4 sm:px-5 sm:py-4 rounded-3xl sm:rounded-full shadow-lg active:scale-95 transition-transform"
+          >
+            <span className="text-2xl font-bold leading-none">+</span>
+            <span className="hidden sm:inline text-sm font-semibold">{t('addExpenseTitle')}</span>
+          </button>
+
+          {/* Settle Up Confirmation Modal */}
+          {settleModalData && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <div className="bg-m3-surface-container-lowest rounded-3xl max-w-sm w-full p-6 text-center shadow-xl">
+                <div className="text-4xl mb-2">🎉</div>
+                <h3 className="text-lg font-bold mb-1">{t('settleRecordedSuccess')}</h3>
+                <p className="text-sm text-m3-on-surface-variant mb-4">
+                  {settleModalData.fromMember.name} ➡️ {settleModalData.amount.toFixed(2)} {currency} ➡️ {settleModalData.toMember.name}
+                </p>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      const text = `✅ Borc bağlandı!\n💸 ${settleModalData.fromMember.name} ➡️ ${settleModalData.amount.toFixed(2)} ${currency} ➡️ ${settleModalData.toMember.name}\nBalans yeniləndi.`;
+                      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                    }}
+                    className="w-full bg-[#25D366] text-white font-bold py-2.5 rounded-full text-sm"
+                  >
+                    {t('sendWhatsAppProof')}
+                  </button>
+                  <button
+                    onClick={() => setSettleModalData(null)}
+                    className="w-full bg-m3-surface-container text-m3-on-surface-variant font-semibold py-2.5 rounded-full text-sm"
+                  >
+                    {t('closeBtn')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Add Expense Modal */}
+          {isExpenseModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <div className="bg-m3-surface-container-lowest rounded-3xl max-w-md w-full p-6 shadow-xl space-y-4">
+                <h3 className="text-lg font-bold">{t('addExpenseTitle')}</h3>
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.target);
+                  const title = fd.get('title');
+                  const amt = parseFloat(fd.get('amount')) || 0;
+                  const paid = fd.get('paidBy');
+                  if (!title || amt <= 0) return;
+                  const share = Math.round((amt / members.length) * 100) / 100;
+                  setExpenses([{
+                    id: `exp_${Date.now()}`,
+                    title,
+                    amount: amt,
+                    paidBy: paid,
+                    date: new Date().toISOString().split('T')[0],
+                    splitType: 'EQUAL',
+                    splits: members.map(m => ({ memberId: m.id, amount: share }))
+                  }, ...expenses]);
+                  setIsExpenseModalOpen(false);
+                }} className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold block mb-1">Məkan və ya təsvir</label>
+                    <input name="title" required placeholder="Tarqovıda kofe..." className="w-full bg-m3-surface-container-low rounded-2xl px-3 py-2 text-sm border border-m3-outline-variant/40" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-semibold block mb-1">Məbləğ ({currency})</label>
+                      <input name="amount" type="number" step="0.01" min="0.01" required placeholder="0.00" className="w-full bg-m3-surface-container-low rounded-2xl px-3 py-2 text-sm border border-m3-outline-variant/40 font-bold" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold block mb-1">Kim ödədi?</label>
+                      <select name="paidBy" defaultValue={activeMemberId} className="w-full bg-m3-surface-container-low rounded-2xl px-3 py-2 text-sm border border-m3-outline-variant/40">
+                        {members.map(m => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button type="button" onClick={() => setIsExpenseModalOpen(false)} className="px-4 py-2 rounded-full text-xs font-semibold text-m3-on-surface-variant">
+                      {t('cancelBtn')}
+                    </button>
+                    <button type="submit" className="px-5 py-2 rounded-full text-xs font-semibold bg-m3-primary text-white">
+                      Yadda saxla
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Help Modal */}
+          {isHelpModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <div className="bg-m3-surface-container-lowest rounded-3xl max-w-md w-full p-6 shadow-xl space-y-3">
+                <h3 className="text-lg font-bold">{t('helpTitle')}</h3>
+                <div className="text-xs text-m3-on-surface-variant space-y-2 leading-relaxed max-h-72 overflow-y-auto">
+                  <div className="bg-m3-surface-container-low p-3 rounded-2xl">
+                    <b className="text-m3-on-surface block mb-1">1. Necə işləyir?</b>
+                    Tətbiq şifrəsizdir (Zero-Auth). Sadəcə adınızı seçirsiniz. Yığıncaqda ödənilən hesabı daxil edin, tətbiq dərhal hər kəsin payını və balansını hesablayır.
+                  </div>
+                  <div className="bg-m3-surface-container-low p-3 rounded-2xl">
+                    <b className="text-m3-on-surface block mb-1">2. Borcların sadələşdirilməsi nədir?</b>
+                    Alqoritm dövri borcları aradan qaldırır. Əgər Elvin Raufa 15 ₼, Rauf isə Çingizə 15 ₼ borcludursa, Elvin birbaşa Çingizə 15 ₼ göndərir.
+                  </div>
+                  <div className="bg-m3-surface-container-low p-3 rounded-2xl">
+                    <b className="text-m3-on-surface block mb-1">3. PWA quraşdırmaq:</b>
+                    iOS: Safari ➡️ Paylaş (Share) ➡️ Ana Ekrana Əlavə Et.<br/>
+                    Android: Chrome ➡️ Menyu (3 nöqtə) ➡️ Tətbiqi quraşdır.
+                  </div>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button onClick={() => setIsHelpModalOpen(false)} className="px-5 py-2 rounded-full text-xs font-semibold bg-m3-primary text-white">
+                    {t('closeBtn')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
