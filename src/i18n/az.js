@@ -81,7 +81,7 @@ export default {
   sponsorDesc: "Ən böyük məbləğdə hesab ödəyən iştirakçı",
   lightningTitle: "İldırım ödəyici",
   lightningDesc: "Borclarını ən cəld və dürüst bağlayan",
-  tomorrowTitle: ""Sabah ataram" bəy",
+  tomorrowTitle: "\"Sabah ataram\" bəy",
   tomorrowDesc: "Borcu ən uzun müddət asılı qalan iştirakçı",
   partyLifeTitle: "Məclisin canı",
   partyLifeDesc: "Ən çox yığıncaqda və görüşdə iştirak edən",
